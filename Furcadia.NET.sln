@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2008
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Furcadia.NET", "Furcadia.NET\Furcadia.NET.csproj", "{58ADE5B5-10D9-4FBE-88C2-4ACD20083447}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Furcadia.NET.Example", "Furcadia.NET.Example\Furcadia.NET.Example.csproj", "{C652D10F-9656-4A0D-873D-17AD55FC0440}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{58ADE5B5-10D9-4FBE-88C2-4ACD20083447}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58ADE5B5-10D9-4FBE-88C2-4ACD20083447}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58ADE5B5-10D9-4FBE-88C2-4ACD20083447}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58ADE5B5-10D9-4FBE-88C2-4ACD20083447}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C652D10F-9656-4A0D-873D-17AD55FC0440}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C652D10F-9656-4A0D-873D-17AD55FC0440}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C652D10F-9656-4A0D-873D-17AD55FC0440}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C652D10F-9656-4A0D-873D-17AD55FC0440}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3ABD80C6-051B-440B-A762-7B0DDD69DC45}
+	EndGlobalSection
+EndGlobal
