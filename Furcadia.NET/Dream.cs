@@ -154,16 +154,73 @@ namespace Furcadia.NET
         [DreamHeader("allowfurl")]
         public bool AllowDreamURL { get => GetHeader(() => AllowDreamURL) == "1"; set => SetHeader(() => AllowDreamURL, value ? "1" : "0"); }
 
-        public string GetHeader<T>(Expression<Func<T>> property) => 
+        public string GetHeader<T>(Expression<Func<T>> property) =>
             this.Headers[((DreamHeader)(((MemberExpression)property.Body).Member.GetCustomAttributes(typeof(DreamHeader), true).First())).HeaderName];
 
-        public void SetHeader<T>(Expression<Func<T>> property, string value) => 
+        public void SetHeader<T>(Expression<Func<T>> property, string value) =>
             this.Headers[((DreamHeader)(((MemberExpression)property.Body).Member.GetCustomAttributes(typeof(DreamHeader), true).First())).HeaderName] = value;
+
+
+        public void SetFloorAt(int x, int y, int id)
+        {
+            if (!IsValidNonWallTile(x, y))
+                throw new InvalidCoordinatesException(x, y, $"The floor tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
+
+            this.MapTiles[GetPosFrom(x, y)].Id = id;
+        }
+
+        public void SetObjectAt(int x, int y, int id)
+        {
+            if (!IsValidNonWallTile(x, y))
+                throw new InvalidCoordinatesException(x, y, $"The object tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
+
+            this.MapTiles[GetPosFrom(x, y) + this.LayerSize].Id = id;
+        }
+
+        public void SetWallAt(int x, int y, int id)
+        {
+            if (!IsWithinRange(x, y, true))
+                throw new InvalidCoordinatesException(x, y, $"The wall tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
+
+            this.MapTiles[((this.InternalHeight * x) + y) + (this.LayerSize * 2)].Id = id;
+        }
+
+        public void SetRegionAt(int x, int y, int id)
+        {
+            if (!IsValidNonWallTile(x, y))
+                throw new InvalidCoordinatesException(x, y, $"The region tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
+
+            this.MapTiles[GetPosFrom(x, y) + (this.LayerSize * 4)].Id = id;
+        }
+
+        public void SetEffectAt(int x, int y, int id)
+        {
+            if (!IsValidNonWallTile(x, y))
+                throw new InvalidCoordinatesException(x, y, $"The effect tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
+
+            this.MapTiles[GetPosFrom(x, y) + (this.LayerSize * 5)].Id = id;
+        }
+
+        public void SetLightingAt(int x, int y, int id)
+        {
+            if (!IsValidNonWallTile(x, y))
+                throw new InvalidCoordinatesException(x, y, $"The lighting tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
+
+            this.MapTiles[GetPosFrom(x, y) + (this.LayerSize * 6)].Id = id;
+        }
+
+        public void SetAmbienceAt(int x, int y, int id)
+        {
+            if (!IsValidNonWallTile(x, y))
+                throw new InvalidCoordinatesException(x, y, $"The ambience tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
+
+            this.MapTiles[GetPosFrom(x, y) + (this.LayerSize * 7)].Id = id;
+        }
 
         public Floor GetFloorAt(int x, int y) => IsValidNonWallTile(x, y) ? (Floor)this.MapTiles[GetPosFrom(x, y)] :
             throw new InvalidCoordinatesException(x, y, $"The floor tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
 
-        public Object GetObjectAt(int x, int y) => IsValidNonWallTile(x, y) ? (Object)this.MapTiles[GetPosFrom(x, y) + (this.LayerSize)] :
+        public Object GetObjectAt(int x, int y) => IsValidNonWallTile(x, y) ? (Object)this.MapTiles[GetPosFrom(x, y) + this.LayerSize] :
             throw new InvalidCoordinatesException(x, y, $"The object tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
 
         public Wall GetWallAt(int x, int y) => IsWithinRange(x, y, true) ? (Wall)this.MapTiles[((this.InternalHeight * x) + y) + (this.LayerSize * 2)] :
@@ -191,6 +248,24 @@ namespace Furcadia.NET
 
         internal Dream()
         {
+        }
+
+        public static Dream Create(int width, int height)
+        {
+            var dream = new Dream() {
+                Version = "MAP V01.50 Furcadia",
+                Headers = new Dictionary<string, string>() {
+                    { "width", (width / 2).ToString() },
+                    { "height", height.ToString() }
+                }};
+
+            var header = dream.CreateHeader();
+            var body = new byte[dream.LayerChunkSize * 8];
+
+            Array.Clear(body, 0, body.Length);
+            Array.Copy(header, body, header.Length);
+
+            return dream.ParseFromBytes(body);
         }
 
         public static Dream FromFile(string fileName)
@@ -287,6 +362,15 @@ namespace Furcadia.NET
             return this;
         }
 
+        public byte[] CreateHeader()
+        {
+            var header = new List<string> { this.Version };
+                header.AddRange(this.Headers.Select(h => h.Key + "=" + h.Value));
+                header.Add("BODY\n");
+
+            return Encoding.GetEncoding(1252).GetBytes(string.Join("\n", header));
+        }
+
         public void Save(string fileName, bool overwrite = true)
         {
             if (File.Exists(fileName) && !overwrite)
@@ -294,12 +378,7 @@ namespace Furcadia.NET
 
             using (var fs = new FileStream(fileName, FileMode.Create)) {
                 using (var bw = new BinaryWriter(fs, Encoding.GetEncoding(1252))) {
-                    var header = new List<string> { this.Version };
-                        header.AddRange(this.Headers.Select(h => h.Key + "=" + h.Value));
-                        header.Add("BODY\n");
-
-                    bw.Write(Encoding.GetEncoding(1252).GetBytes(string.Join("\n", header)));
-                    
+                    bw.Write(this.CreateHeader());
                     bw.Write(this.MapTiles.Where(tile => tile is Floor).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
                     bw.Write(this.MapTiles.Where(tile => tile is Object).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
                     bw.Write(this.MapTiles.Where(tile => tile is Wall).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).Select(us => (byte)us.Id).ToArray());
@@ -315,7 +394,7 @@ namespace Furcadia.NET
         private int LayerChunkSize => (this.InternalWidth * this.InternalHeight) * 2;
         private int LayerSize => this.InternalWidth * this.InternalHeight;
 
-        private bool IsValidNonWallTile(int x, int y) => IsWithinRange(x, y) && x % 2 == 0;
+        private bool IsValidNonWallTile(int x, int y) => IsWithinRange(x, y) && x % 2 != 0;
         private bool IsWithinRange(int x, int y, bool wall = false) => x >= 0 && y >= 0 && x <= (this.InternalWidth * 2) - (!wall ? 2 : 1) && y <= this.InternalHeight - 1;
 
         internal int GetPosFrom(int x, int y) => (this.InternalHeight * (x / 2)) + y;
