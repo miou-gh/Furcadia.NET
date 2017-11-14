@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 
 namespace Furcadia.NET
@@ -79,6 +80,18 @@ namespace Furcadia.NET
         }
     }
 
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    public class DreamHeader : Attribute
+    {
+        public string HeaderName;
+
+        public DreamHeader(string headerName)
+        {
+            this.HeaderName = headerName;
+        }
+    }
+
+
     public class Dream
     {
         internal string Version { get; set; }
@@ -89,30 +102,68 @@ namespace Furcadia.NET
 
         public int Width => int.Parse(this.Headers["width"]) * 2;
         public int Height => int.Parse(this.Headers["height"]);
-        public int Revision => this.Headers.ContainsKey("revision") ? int.Parse(this.Headers["revision"]) : 1;
 
-        public string Name => this.Headers.ContainsKey("name") ? this.Headers["name"] : "";
-        public string Rating => this.Headers.ContainsKey("rating") ? this.Headers["rating"] : "";
-        public string PatchArchive => this.Headers.ContainsKey("patchs") ? this.Headers["patchs"] : "";
+        [DreamHeader("revision")]
+        public int Revision { get => int.Parse(GetHeader(() => Revision)); set => SetHeader(() => Revision, value.ToString()); }
 
-        public bool IsModern => !this.Headers.ContainsKey("ismodern") ? false : this.Headers["ismodern"] == "1";
-        public bool PreventTabNameListing => !this.Headers.ContainsKey("notab") ? false : this.Headers["notab"] == "1";
-        public bool PreventSeasonalAvatars => !this.Headers.ContainsKey("nonovelty") ? false : this.Headers["nonovelty"] == "1";
-        public bool PreventPlayerListing => !this.Headers.ContainsKey("nowho") ? false : this.Headers["nowho"] == "1";
-        public bool AllowShouting => !this.Headers.ContainsKey("allowshouts") ? false : this.Headers["allowshouts"] == "1";
-        public bool StrictSittable => !this.Headers.ContainsKey("forcesittable") ? false : this.Headers["forcesittable"] == "1";
-        public bool UseSwearFilter => !this.Headers.ContainsKey("swearfilter") ? false : this.Headers["swearfilter"] == "1";
-        public bool EnforceParentalControls => !this.Headers.ContainsKey("parentalcontrols") ? false : this.Headers["parentalcontrols"] == "1";
-        public bool EncodeDream => !this.Headers.ContainsKey("encoded") ? false : this.Headers["encoded"] == "1";
-        public bool AllowLeadFollow => !this.Headers.ContainsKey("allowlf") ? false : this.Headers["allowlf"] == "1";
-        public bool AllowLargeDreamSize => !this.Headers.ContainsKey("allowlarge") ? false : this.Headers["allowlarge"] == "1";
-        public bool AllowJoinSummon => !this.Headers.ContainsKey("allowjs") ? false : this.Headers["allowjs"] == "1";
-        public bool AllowDreamURL => !this.Headers.ContainsKey("allowfurl") ? false : this.Headers["allowfurl"] == "1";
+        [DreamHeader("name")]
+        public string Name { get => GetHeader(() => Name); set => SetHeader(() => Name, value); }
 
-        public Floor GetFloorAt(int x, int y) => IsValidNonWallTile(x, y) ? (Floor)this.MapTiles[GetPosFrom(x, y) - 1] :
+        [DreamHeader("rating")]
+        public string Rating { get => GetHeader(() => Rating); set => SetHeader(() => Rating, value); }
+
+        [DreamHeader("patchs")]
+        public string PatchArchive { get => GetHeader(() => PatchArchive); set => SetHeader(() => PatchArchive, value); }
+
+        [DreamHeader("ismodern")]
+        public bool IsModern { get => GetHeader(() => IsModern) == "1"; set => SetHeader(() => IsModern, value ? "1" : "0"); }
+
+        [DreamHeader("notab")]
+        public bool PreventTabNameListing { get => GetHeader(() => PreventTabNameListing) == "1"; set => SetHeader(() => PreventTabNameListing, value ? "1" : "0"); }
+
+        [DreamHeader("nonovelty")]
+        public bool PreventSeasonalAvatars { get => GetHeader(() => PreventSeasonalAvatars) == "1"; set => SetHeader(() => PreventSeasonalAvatars, value ? "1" : "0"); }
+
+        [DreamHeader("nowho")]
+        public bool PreventPlayerListing { get => GetHeader(() => PreventPlayerListing) == "1"; set => SetHeader(() => PreventPlayerListing, value ? "1" : "0"); }
+
+        [DreamHeader("allowshouts")]
+        public bool AllowShouting { get => GetHeader(() => AllowShouting) == "1"; set => SetHeader(() => AllowShouting, value ? "1" : "0"); }
+
+        [DreamHeader("forcesittable")]
+        public bool StrictSittable { get => GetHeader(() => StrictSittable) == "1"; set => SetHeader(() => StrictSittable, value ? "1" : "0"); }
+
+        [DreamHeader("swearfilter")]
+        public bool UseSwearFilter { get => GetHeader(() => UseSwearFilter) == "1"; set => SetHeader(() => UseSwearFilter, value ? "1" : "0"); }
+
+        [DreamHeader("parentalcontrols")]
+        public bool EnforceParentalControls { get => GetHeader(() => EnforceParentalControls) == "1"; set => SetHeader(() => EnforceParentalControls, value ? "1" : "0"); }
+
+        [DreamHeader("encoded")]
+        public bool EncodeDream { get => GetHeader(() => EncodeDream) == "1"; set => SetHeader(() => EncodeDream, value ? "1" : "0"); }
+
+        [DreamHeader("allowlf")]
+        public bool AllowLeadFollow { get => GetHeader(() => AllowLeadFollow) == "1"; set => SetHeader(() => AllowLeadFollow, value ? "1" : "0"); }
+
+        [DreamHeader("allowlarge")]
+        public bool AllowLargeDreamSize { get => GetHeader(() => AllowLargeDreamSize) == "1"; set => SetHeader(() => AllowLargeDreamSize, value ? "1" : "0"); }
+
+        [DreamHeader("allowjs")]
+        public bool AllowJoinSummon { get => GetHeader(() => AllowJoinSummon) == "1"; set => SetHeader(() => AllowJoinSummon, value ? "1" : "0"); }
+
+        [DreamHeader("allowfurl")]
+        public bool AllowDreamURL { get => GetHeader(() => AllowDreamURL) == "1"; set => SetHeader(() => AllowDreamURL, value ? "1" : "0"); }
+
+        public string GetHeader<T>(Expression<Func<T>> property) => 
+            this.Headers[((DreamHeader)(((MemberExpression)property.Body).Member.GetCustomAttributes(typeof(DreamHeader), true).First())).HeaderName];
+
+        public void SetHeader<T>(Expression<Func<T>> property, string value) => 
+            this.Headers[((DreamHeader)(((MemberExpression)property.Body).Member.GetCustomAttributes(typeof(DreamHeader), true).First())).HeaderName] = value;
+
+        public Floor GetFloorAt(int x, int y) => IsValidNonWallTile(x, y) ? (Floor)this.MapTiles[GetPosFrom(x, y)] :
             throw new InvalidCoordinatesException(x, y, $"The floor tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
 
-        public Object GetObjectAt(int x, int y) => IsValidNonWallTile(x, y) ? (Object)this.MapTiles[GetPosFrom(x, y) - 1 + (this.LayerSize)] :
+        public Object GetObjectAt(int x, int y) => IsValidNonWallTile(x, y) ? (Object)this.MapTiles[GetPosFrom(x, y) + (this.LayerSize)] :
             throw new InvalidCoordinatesException(x, y, $"The object tile co-ordinate ({x}, {y}) is either invalid or is out of range.");
 
         public Wall GetWallAt(int x, int y) => IsWithinRange(x, y, true) ? (Wall)this.MapTiles[((this.InternalHeight * x) + y) + (this.LayerSize * 2)] :
@@ -155,7 +206,7 @@ namespace Furcadia.NET
         private Dream ParseFromBytes(byte[] input)
         {
             var header_eol = new byte[] { 0x0A, 0x42, 0x4F, 0x44, 0x59, 0x0A }; // \nbody\n
-            var header_footer = Extensions.PatternAt(input, header_eol).First() + header_eol.Length + 1; // body begins here
+            var header_footer = Extensions.PatternAt(input, header_eol).First() + header_eol.Length - 1; // body begins here
 
             var metadata = new StreamReader(new MemoryStream(input, 0, header_footer)).ReadToEnd()
                 .Split('\n').Select(meta => meta.Split('='));
@@ -169,13 +220,13 @@ namespace Furcadia.NET
 
             if (this.Version == "MAP V01.50 Furcadia") {
                 var br = new BinaryReader(new MemoryStream(input), Encoding.GetEncoding(1252));
-                br.ReadBytes(header_footer);
-
+                br.BaseStream.Seek(header_footer, SeekOrigin.Begin);
+                
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerSize)
                     select new Floor(
-                         x: ((i + i) / this.InternalHeight),
-                         y: (i + 1) % this.InternalHeight,
+                         x: (i / this.Height) * 2,
+                         y: (i % this.Height),
                          id: BitConverter.ToUInt16(br.ReadBytes(2).Reverse().ToArray(), 0)));
 
                 br.BaseStream.Seek(header_footer + this.LayerChunkSize, SeekOrigin.Begin);
@@ -183,58 +234,83 @@ namespace Furcadia.NET
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerSize)
                     select new Object(
-                         x: ((i + i) / this.InternalHeight),
-                         y: (i + 1) % this.InternalHeight,
+                         x: (i / this.Height) * 2,
+                         y: (i % this.Height),
                          id: BitConverter.ToUInt16(br.ReadBytes(2).Reverse().ToArray(), 0)));
 
-                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 2) - 1, SeekOrigin.Begin);
+                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 2) + 1, SeekOrigin.Begin);
 
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerChunkSize)
                     select new Wall(
-                         x: ((i + 1) / this.InternalHeight),
-                         y: i % this.InternalHeight,
+                         x: (i + 1 / this.Height) * 2,
+                         y: (i % this.Height),
                          id: br.ReadByte()));
 
-                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 3) - 2, SeekOrigin.Begin);
+                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 3), SeekOrigin.Begin);
 
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerSize)
                     select new Region(
-                         x: ((i + i) / this.InternalHeight) * 2,
-                         y: (i + 1) % this.InternalHeight,
+                         x: (i / this.Height) * 2,
+                         y: (i % this.Height),
                          id: BitConverter.ToUInt16(br.ReadBytes(2).Reverse().ToArray(), 0)));
 
-                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 4) - 2, SeekOrigin.Begin);
+                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 4), SeekOrigin.Begin);
 
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerSize)
                     select new Effect(
-                         x: ((i + i) / this.InternalHeight) * 2,
-                         y: (i + 1) % this.InternalHeight,
+                         x: (i / this.Height) * 2,
+                         y: (i % this.Height),
                          id: BitConverter.ToUInt16(br.ReadBytes(2).Reverse().ToArray(), 0)));
 
-                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 5) - 2, SeekOrigin.Begin);
+                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 5), SeekOrigin.Begin);
 
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerSize)
                     select new Lighting(
-                         x: ((i + i) / this.InternalHeight) * 2,
-                         y: (i + 1) % this.InternalHeight,
+                         x: (i / this.Height) * 2,
+                         y: (i % this.Height),
                          id: BitConverter.ToUInt16(br.ReadBytes(2).Reverse().ToArray(), 0)));
 
-                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 6) - 2, SeekOrigin.Begin);
+                br.BaseStream.Seek(header_footer + (this.LayerChunkSize * 6), SeekOrigin.Begin);
 
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerSize)
                     select new Ambience(
-                         x: ((i + i) / this.InternalHeight) * 2,
-                         y: (i + 1) % this.InternalHeight,
+                         x: (i / this.Height) * 2,
+                         y: (i % this.Height),
                          id: BitConverter.ToUInt16(br.ReadBytes(2).Reverse().ToArray(), 0)));
             }
 
             return this;
         }
+
+        public void Save(string fileName, bool overwrite = true)
+        {
+            if (File.Exists(fileName) && !overwrite)
+                return;
+
+            using (var fs = new FileStream(fileName, FileMode.Create)) {
+                using (var bw = new BinaryWriter(fs, Encoding.GetEncoding(1252))) {
+                    var header = new List<string> { this.Version };
+                        header.AddRange(this.Headers.Select(h => h.Key + "=" + h.Value));
+                        header.Add("BODY\n");
+
+                    bw.Write(Encoding.GetEncoding(1252).GetBytes(string.Join("\n", header)));
+                    
+                    bw.Write(this.MapTiles.Where(tile => tile is Floor).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Object).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Wall).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).Select(us => (byte)us.Id).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Region).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Effect).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Lighting).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Ambience).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                }
+            }
+        }
+
 
         private int LayerChunkSize => (this.InternalWidth * this.InternalHeight) * 2;
         private int LayerSize => this.InternalWidth * this.InternalHeight;
