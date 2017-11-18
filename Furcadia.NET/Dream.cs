@@ -91,7 +91,6 @@ namespace Furcadia.NET
         }
     }
 
-
     public class Dream
     {
         internal string Version { get; set; }
@@ -114,6 +113,9 @@ namespace Furcadia.NET
 
         [DreamHeader("patchs")]
         public string PatchArchive { get => GetHeader(() => PatchArchive); set => SetHeader(() => PatchArchive, value); }
+
+        [DreamHeader("patcht")]
+        public int UsePatch { get => int.Parse(GetHeader(() => UsePatch)); set => SetHeader(() => UsePatch, value.ToString()); }
 
         [DreamHeader("ismodern")]
         public bool IsModern { get => GetHeader(() => IsModern) == "1"; set => SetHeader(() => IsModern, value ? "1" : "0"); }
@@ -295,8 +297,8 @@ namespace Furcadia.NET
 
             if (this.Version == "MAP V01.50 Furcadia") {
                 var br = new BinaryReader(new MemoryStream(input), Encoding.GetEncoding(1252));
-                br.BaseStream.Seek(header_footer, SeekOrigin.Begin);
-                
+                    br.BaseStream.Seek(header_footer + 1, SeekOrigin.Begin);
+
                 this.MapTiles.AddRange(
                     from i in Enumerable.Range(0, this.LayerSize)
                     select new Floor(
@@ -379,22 +381,21 @@ namespace Furcadia.NET
             using (var fs = new FileStream(fileName, FileMode.Create)) {
                 using (var bw = new BinaryWriter(fs, Encoding.GetEncoding(1252))) {
                     bw.Write(this.CreateHeader());
-                    bw.Write(this.MapTiles.Where(tile => tile is Floor).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
-                    bw.Write(this.MapTiles.Where(tile => tile is Object).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
-                    bw.Write(this.MapTiles.Where(tile => tile is Wall).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).Select(us => (byte)us.Id).ToArray());
-                    bw.Write(this.MapTiles.Where(tile => tile is Region).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
-                    bw.Write(this.MapTiles.Where(tile => tile is Effect).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
-                    bw.Write(this.MapTiles.Where(tile => tile is Lighting).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
-                    bw.Write(this.MapTiles.Where(tile => tile is Ambience).OrderBy(n => n.Location.X).ThenBy(n => n.Location.Y).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Floor).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Object).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Wall).Select(us => (byte)us.Id).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Region).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Effect).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Lighting).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
+                    bw.Write(this.MapTiles.Where(tile => tile is Ambience).SelectMany(us => BitConverter.GetBytes((ushort)us.Id)).ToArray());
                 }
             }
         }
 
-
         private int LayerChunkSize => (this.InternalWidth * this.InternalHeight) * 2;
         private int LayerSize => this.InternalWidth * this.InternalHeight;
 
-        private bool IsValidNonWallTile(int x, int y) => IsWithinRange(x, y) && x % 2 != 0;
+        private bool IsValidNonWallTile(int x, int y) => IsWithinRange(x, y) && x % 2 == 0;
         private bool IsWithinRange(int x, int y, bool wall = false) => x >= 0 && y >= 0 && x <= (this.InternalWidth * 2) - (!wall ? 2 : 1) && y <= this.InternalHeight - 1;
 
         internal int GetPosFrom(int x, int y) => (this.InternalHeight * (x / 2)) + y;
